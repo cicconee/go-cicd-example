@@ -14,7 +14,7 @@ An example Go application that uses github actions to deploy code commits.
 
 Go to DigitalOcean and create a new Ubuntu 22.04 (LTS) Droplet. Make sure to pair a SSH key with the droplet. Once it is created the IP address should be displayed near the droplet name. In a terminal try to login to the server with the command `ssh root@<your-droplet-ip>`. Enter your password if you used one when creating the key.
 
-In the ssh session you need to configure a systemd unit file to run the application as a system service. Use your favorite text editor (I use nano) and create a new systemd file `nano /etc/systemd/system/<app-name>.service` with the following content. 
+In the ssh session you need to configure a systemd unit file to run the application as a system service. Use your favorite text editor (I use nano) and create a new systemd file `nano /etc/systemd/system/<service-name>.service` with the following content. 
 
 ```
 [Unit]
@@ -40,10 +40,50 @@ Now you can enable the service.
 
 ```shell
 # this will enable the service to start at server bootup
-systemctl enable <app-name>
+systemctl enable <service-name>
 
 # start the service (Executes ExecStart prepending any environment variables)
-systemctl start <app-name>
+systemctl start <service-name>
 ```
 
-If you view the status you will see that 
+If you view the status you will see that it is `inactive`. 
+
+```shell
+systemctl status <service-name>
+```
+
+This is because the binary does not exist yet. If you continue viewing the service you will see that the time of inactivity keeps moving forward in time by 3 seconds. This is because of the configuration `Restart=always` and `RestartSec=3`. It is saying to always try and restart every 3 seconds. Stop the service so these pointless restart attempts terminate.
+
+```shell
+systemctl stop <service-name>
+```
+
+# Viewing Service Logs
+
+It is very important to be able to view log files. Typically newer developers are used to viewing them in the console they ran the program, however, now the application is being ran as a system service. The service file included `StandardOutput=syslog`, `StandardError=syslog`, and `SyslogIdentifier=app-logging-identifier`. These tell the operating system to log all standard and error output to the syslog, and to tag each log entry with the specified `SyslogIdentifier`.
+
+Make sure the service is running before viewing the log journal.
+
+```shell
+journalctl -u example
+```
+
+If everything is configured correctly you should see the logs. 
+
+If you are like me and got the `No journal files were found` message, something is configured incorrectly. I found that the Ubuntu 22.04 (LTS) droplet comes with a corrupted journal service (or I am overlooking a configuration setting). First verify that the service is at least writing to the `syslog`.
+
+```shell
+cat /var/log/syslog
+``` 
+
+Check if there are any log entries from your service (look for your `SyslogIdentifier` value). If you do not see any logs, then either your service is not running or you configured something incorrectly in the previous steps.
+
+Now that you verified logs are at least being written to `syslog`, restart the `systemd-journald` service.
+
+```shell
+systemctl restart systemd-journald.service
+```
+
+View your service logs again, and you should see the service logs. 
+
+_Hint: append a `-f` to the end of the command to get a continous stream of logs_.
