@@ -12,7 +12,7 @@ An example Go application that uses github actions to deploy code commits.
 
 # Steps For Deployment
 
-Go to DigitalOcean and create a new Ubuntu 22.04 (LTS) Droplet. Make sure to pair a SSH key with the droplet. Once it is created the IP address should be displayed near the droplet name. In a terminal try to login to the server with the command `ssh root@<your-droplet-ip>`. Enter your password if you used one when creating the key.
+Go to DigitalOcean and create a new Ubuntu 22.04 (LTS) Droplet. Make sure to configure a SSH key with the droplet. Once it is created the IP address should be displayed near the droplet name. In a terminal try to login to the server with the command `ssh root@<your-droplet-ip>`. Enter your password if you used one when creating the key.
 
 In the ssh session you need to configure a systemd unit file to run the application as a system service. Use your favorite text editor (I use nano) and create a new systemd file `nano /etc/systemd/system/<service-name>.service` with the following content. 
 
