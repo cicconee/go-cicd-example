@@ -11,7 +11,7 @@ func main() {
 	count := 0
 
 	for {
-		log.Printf("Count: %d\n", count)
+		log.Printf("Quick Change! Count: %d\n", count)
 		time.Sleep(time.Second)
 		count = pkg.Increment(count)
 	}
