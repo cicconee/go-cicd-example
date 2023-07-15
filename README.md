@@ -68,6 +68,8 @@ Make sure the service is running before viewing the log journal.
 journalctl -u example
 ```
 
+_Hint: append a `-f` to the end of the command to get a continous stream of logs_.
+
 If everything is configured correctly you should see the logs. 
 
 If you are like me and got the `No journal files were found` message, something is configured incorrectly. I found that the Ubuntu 22.04 (LTS) droplet comes with a corrupted journal service (or I am overlooking a configuration setting). First verify that the service is at least writing to the `syslog`.
@@ -85,5 +87,3 @@ systemctl restart systemd-journald.service
 ```
 
 View your service logs again, and you should see the service logs. 
-
-_Hint: append a `-f` to the end of the command to get a continous stream of logs_.
