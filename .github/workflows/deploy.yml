@@ -18,6 +18,15 @@ jobs:
 
       - name: Build
         run: go build -o app cmd/main.go
-        
+
       - name: Test
         run: go test -v ./...
+
+      - name: Publish to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          source: "app"
+          target: /go-cicd
