@@ -29,12 +29,16 @@ RemainAfterExit=yes
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=app-logging-identifier
+Environment=ENV_ONE=one
+Environment=ENV_TWO=two
 
 [Install]
 WantedBy=multi-user.target
 ```
 
 `RemainAfterExit=yes` will ensure that the programs remain running after exiting a ssh session. Besure to change `ExecStart=/path-to-binary` and `SyslogIdentifier=app-logging-identifier` with your own system configurations.
+
+Any environment variables required by the service can be set using the syntax `Environment=ENV_VAR=value`.
 
 Now you can enable the service.
 
@@ -60,7 +64,7 @@ systemctl stop <service-name>
 
 # Viewing Service Logs
 
-It is very important to be able to view log files. Typically newer developers are used to viewing them in the console they ran the program, however, now the application is being ran as a system service. The service file included `StandardOutput=syslog`, `StandardError=syslog`, and `SyslogIdentifier=app-logging-identifier`. These tell the operating system to log all standard and error output to the syslog, and to tag each log entry with the specified `SyslogIdentifier`.
+It is very important to be able to view log files. Typically newer developers are used to viewing them in the console they ran the program, however, now the application is being ran as a system service. By default, systemd services will write to `syslog`. The `SyslogIdentifier=app-logging-identifier` configuration tells `systemd` to tag each log entry with `app-logging-identifier`.
 
 Make sure the service is running before viewing the log journal.
 

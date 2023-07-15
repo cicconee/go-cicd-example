@@ -15,6 +15,7 @@ func main() {
 	for {
 		log.Printf("Count HAHA: %d\n", count)
 		log.Println("NAME:", name)
+		log.Println("Works with its own ssh key")
 		time.Sleep(time.Second)
 		count = pkg.Increment(count)
 	}
