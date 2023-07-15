@@ -28,6 +28,6 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
-          password: ${{ secrets.PASSWORD }}
+          passphrase: ${{ secrets.PASSPHRASE }}
           source: "app"
           target: /go-cicd
