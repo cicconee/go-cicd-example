@@ -31,3 +31,13 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE }}
           source: "app"
           target: /go-cicd
+
+      - name: Restart systemd service
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          script: |
+            systemctl restart example
