@@ -12,14 +12,11 @@ An example Go application that uses github actions to deploy code commits.
 
 # Steps For Deployment
 
-Go to DigitalOcean and create a new Ubuntu 22.04 (LTS) Droplet. Make sure to pair a SSH key with the droplet. Once it is created the IP address should be displayed near the droplet name. In a terminal try to login to the server with the command `ssh root@<your-droplet-ip>`.
+Go to DigitalOcean and create a new Ubuntu 22.04 (LTS) Droplet. Make sure to pair a SSH key with the droplet. Once it is created the IP address should be displayed near the droplet name. In a terminal try to login to the server with the command `ssh root@<your-droplet-ip>`. Enter your password if you used one when creating the key.
 
-Once
+In the ssh session you need to configure a systemd unit file to run the application as a system service. Use your favorite text editor (I use nano) and create a new systemd file `nano /etc/systemd/system/<app-name>.service` with the following content. 
 
-For simplicity create a folder to hold the application binary at `/your-app-name`. Change into the new directory and clone your application.
-
-
-# Systemd Service File
+```
 [Unit]
 Description=Your service description
 
@@ -27,11 +24,26 @@ Description=Your service description
 Type=simple
 Restart=always
 RestartSec=3
-ExecStart=/counter/go-cicd-example/app
+ExecStart=/path-to-binary
 RemainAfterExit=yes
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier=gocicd
+SyslogIdentifier=app-logging-identifier
 
 [Install]
 WantedBy=multi-user.target
+```
+
+`RemainAfterExit=yes` will ensure that the programs remain running after exiting a ssh session. Besure to change `ExecStart=/path-to-binary` and `SyslogIdentifier=app-logging-identifier` with your own system configurations.
+
+Now you can enable the service.
+
+```shell
+# this will enable the service to start at server bootup
+systemctl enable <app-name>
+
+# start the service (Executes ExecStart prepending any environment variables)
+systemctl start <app-name>
+```
+
+If you view the status you will see that 
