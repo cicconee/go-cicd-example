@@ -36,7 +36,7 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE }}
           password: ${{ secrets.PASSWORD }}
           source: "app,.env"
-          target: /go-cicd
+          target: /home/deployer/go-cicd
 
       - name: Restart systemd service
         uses: appleboy/ssh-action@v0.1.10
@@ -47,5 +47,5 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE }}
           password: ${{ secrets.PASSWORD }}
           script: |
-            chmod 660 /go-cicd/.env
+            chmod 660 /home/deployer/go-cicd/.env
             sudo systemctl restart example
