@@ -14,7 +14,7 @@ An example Go application that uses github actions to deploy code commits.
 
 This section documents the steps needed to configure the CI/CD pipeline using Github Actions and DigitalOcean Droplets. 
 
-## Generating SSH Keys
+### Generating SSH Keys
 
 Configuring the CI/CD pipeline will require the use of two seperate SSH keys. The first key will be for the root user. This key is very important as gaining access to this key will give root access to the server. The second key is for the Github Actions deployer. This key will be for a user with limited access.
 
@@ -36,7 +36,7 @@ This will generate two files `digitalocean` and `digitalocean.pub`.
 
 Repeat this process for the second key but use `digitalocean_deployer` for the key file name.
 
-## DigitalOcean
+### DigitalOcean
 
 Go to DigitalOcean and create a new project. Give it a meaningful name and description. Once the project is created, create a new Ubuntu 22.04 (LTS) Droplet. When prompted to choose your authentication method select `SSH Key` and choose `New SSH Key`. Give this key a name and paste the contents of `~/.ssh/digitalocean.pub`.
 
@@ -57,7 +57,7 @@ ssh -i ~/.ssh/digitalocean root@<ip-address>
 Enter your password if you used one when creating the key.
 
 
-### Systemd
+#### Systemd
 
 In a SSH session logged in as root, configure a systemd unit file to run the application as a system service. Use your favorite text editor (I use nano) and create a new systemd file. 
 
@@ -75,7 +75,7 @@ Description=Your service description
 Type=simple
 Restart=always
 RestartSec=3
-ExecStart=/home/deployer/<APP-FOLDER>
+ExecStart=/home/deployer/<APP-FOLDER>/<BINARY-TO-RUN>
 RemainAfterExit=yes
 StandardOutput=syslog
 StandardError=syslog
@@ -96,7 +96,7 @@ Now you can enable the service to start at boot time.
 systemctl enable <service-name>
 ```
 
-### Create Deployer User
+#### Create Deployer User
 
 The user `deployer` will be the user that Github Actions uses to SSH into the droplet.
 
@@ -114,7 +114,7 @@ passwd deployer
 
 Input the password as prompted.
 
-### Give Systemctl Restart Privilege to Deployer
+#### Give Systemctl Restart Privilege to Deployer
 
 `deployer` will be used by Github Actions to SSH into the droplet and restart the service after copying the new binary. This is a very specific privilege `deployer` requires. A perfect reason to make use of the `sudoers` file. 
 
@@ -127,12 +127,12 @@ nano /etc/sudoers
 Add the line in `User privilege specification` section below the `root` definition:
 
 ```
-deployer    ALL = NOPASSWD: /usr/bin/systemctl restart <service>
+deployer    ALL = NOPASSWD: /usr/bin/systemctl restart <service-name>
 ```
 
 This will allow `deployer` to run `sudo systemctl restart <service-name>` without needing to provide a password.
 
-### Adding Deployer SSH Key
+#### Adding Deployer SSH Key
 
 On the local machine that generated the key `digitalocean_deployer`, print the public key and copy the output.
 
@@ -166,3 +166,4 @@ Now it is possible to SSH into the droplet logging in as `deployer`.
 ```sh
 ssh -i ~/.ssh/digitalocean_deployer deployer@<ip-address>
 ```
+
