@@ -2,25 +2,27 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
-	"time"
 
 	"github.com/cicconee/go-cicd-example/pkg"
 )
 
 func main() {
-	count := 0
+	count := 1
 	name := os.Getenv("MY_NAME")
+	log.Println("MY_NAME:", name)
 
-	for {
-		log.Printf("Count HAHA: %d\n", count)
-		log.Println("NAME:", name)
-		log.Println("Works with its own ssh key")
-		log.Println("Push while logged out")
-		log.Println("I like cream cheese")
-		time.Sleep(time.Second)
+	mux := http.NewServeMux()
+	mux.Handle("/test", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		w.Write([]byte(`{"message": "success dude!"}`))
+		log.Printf("Request %d finished", count)
 		count = pkg.Increment(count)
-	}
+	}))
+
+	err := http.ListenAndServe(":8000", mux)
+	log.Println("ERR:", err)
 }
 
 func Increment(i int) int {
