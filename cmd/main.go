@@ -17,6 +17,7 @@ func main() {
 		log.Println("NAME:", name)
 		log.Println("Works with its own ssh key")
 		log.Println("Push while logged out")
+		log.Println("I like cream cheese")
 		time.Sleep(time.Second)
 		count = pkg.Increment(count)
 	}

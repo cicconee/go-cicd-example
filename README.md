@@ -10,9 +10,40 @@ An example Go application that uses github actions to deploy code commits.
 - DigitalOcean Droplet (Ubuntu 22.04)
 - Github Actions
 
-# Steps For Deployment
+# Configuring CI/CD
 
-Go to DigitalOcean and create a new Ubuntu 22.04 (LTS) Droplet. Make sure to configure a SSH key with the droplet. Once it is created the IP address should be displayed near the droplet name. In a terminal try to login to the server with the command `ssh root@<your-droplet-ip>`. Enter your password if you used one when creating the key.
+This section documents the steps needed to configure the CI/CD pipeline using Github Actions and DigitalOcean Droplets. 
+
+## Generating SSH Keys
+
+Configuring the CI/CD pipeline will require the use of two seperate SSH keys. The first key will be for the root user. This key is very important as gaining access to this key will give root access to the server. The second key is for the Github Actions deployer. This key will be for a user with limited access.
+
+Generate the root key. It is highly recommended to password protect your SSH keys.
+
+```sh
+ssh-keygen
+```
+
+You will be prompted to save and name the key. I like to name my keys by service (and role if it applies).
+
+```
+Generating public/private rsa key pair. Enter file in which to save the key (/Users/USER/.ssh/id_rsa): ~/.ssh/digitalocean_root
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+```
+
+This will generate two files `digitalocean_root` and `digitalocean_root.pub`.
+
+Repeat this process for the second key but use `digitalocean_deployer` for the key file name.
+
+## DigitalOcean
+
+Go to DigitalOcean and create a new project. Give it a meaningful name and description. Once the project is created, create a new Ubuntu 22.04 (LTS) Droplet. When prompted to choose your authentication method select `SSH Key` and choose `New SSH Key`. Give this key a name and paste the contents of `cat ~/.ssh/digitalocean_root` for the key value. Add the SSH key and make sure it is selected before creating the droplet. **Do not set up the other key yet.**
+Lastly, select the new project you just created.
+
+Once it is created the IP address should be displayed near the droplet name. In a terminal try to login to the server with the command `ssh root@<your-droplet-ip>`. Enter your password if you used one when creating the key.
+
+### Systemd
 
 In the ssh session you need to configure a systemd unit file to run the application as a system service. Use your favorite text editor (I use nano) and create a new systemd file `nano /etc/systemd/system/<service-name>.service` with the following content. 
 
@@ -38,7 +69,7 @@ WantedBy=multi-user.target
 
 `RemainAfterExit=yes` will ensure that the programs remain running after exiting a ssh session. Besure to change `ExecStart=/path-to-binary` and `SyslogIdentifier=app-logging-identifier` with your own system configurations.
 
-Any environment variables required by the service can be set using the syntax `Environment=ENV_VAR=value`.
+All environment variables required by the service can be set using the syntax `Environment=KEY=value`.
 
 Now you can enable the service.
 
@@ -91,3 +122,18 @@ systemctl restart systemd-journald.service
 ```
 
 View your service logs again, and you should see the service logs. 
+
+
+## Create group
+
+groupadd devops
+
+## Change group owner of a file
+
+chgrp devops env-file
+
+## Set Env File Permissions
+
+chmod 660 env-file
+
+This will allow read and writes only by the owner and group. All others will have zero access to the file.
