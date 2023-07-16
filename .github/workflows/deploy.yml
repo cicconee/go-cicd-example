@@ -22,6 +22,11 @@ jobs:
       - name: Test
         run: go test -v ./...
 
+      - name: Create .env file
+        run: |
+          touch .env
+          echo MY_NAME=${{ secrets.MY_NAME }} >> .env
+
       - name: Publish to server
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -29,7 +34,8 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
-          source: "app"
+          password: ${{ secrets.PASSWORD }}
+          source: "app,.env"
           target: /go-cicd
 
       - name: Restart systemd service
@@ -39,5 +45,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
+          password: ${{ secrets.PASSWORD }}
           script: |
-            systemctl restart example
+            chmod 660 /go-cicd/.env
+            sudo systemctl restart example

@@ -95,7 +95,7 @@ systemctl enable <service-name>
 systemctl start <service-name>
 ```
 
-If you view the status you will see that it is `inactive`. 
+If you view the status you will see that it keeps trying to activate. 
 
 ```shell
 systemctl status <service-name>
