@@ -47,4 +47,4 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE }}
           script: |
             chmod 660 /home/deployer/go-cicd/.env
-            sudo systemctl restart example
+            sudo systemctl restart go-cicd
