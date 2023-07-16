@@ -10,7 +10,7 @@ import (
 
 func main() {
 	count := 0
-	name := os.Getenv("NAME")
+	name := os.Getenv("MY_NAME")
 
 	for {
 		log.Printf("Count HAHA: %d\n", count)
