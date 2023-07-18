@@ -13,7 +13,7 @@ import (
 
 func main() {
 
-	psqlInfo := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", "test_app", "password", "0.0.0.0", "5432", "weather_app_db")
+	psqlInfo := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", "app", "password", "0.0.0.0", "5432", "app")
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
 		log.Fatalln(err)
