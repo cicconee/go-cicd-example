@@ -16,15 +16,19 @@ This section documents how to make the server production ready and configuring C
 
 ### Generating SSH Keys
 
-The server will require the use of two seperate SSH keys. The first key will be for the root user. This key is very important as gaining access to this key will give root access to the server. The second key is for the Github Actions deployer. This key will be for a user with limited access.
+The server will require the use of two seperate SSH keys. 
 
-Generate the root key. It is highly recommended to password protect your SSH keys.
+The first key will be for a user that belongs to the `sudo` group. This account will have elevated privileges.
+
+The second key will be for the CI/CD pipeline user. This account will have limited access.
+
+Generate the `sudo` user key. It is highly recommended to password protect your SSH keys.
 
 ```sh
 ssh-keygen
 ```
 
-You will be prompted to save and name the key. I like to name my keys by service (and role if it applies).
+You will be prompted to name the key. I like to name my keys by service (and role if it applies).
 
 ```
 Generating public/private rsa key pair. Enter file in which to save the key (/Users/USER/.ssh/id_rsa): /Users/USER/.ssh/digitalocean
@@ -34,7 +38,7 @@ Enter same passphrase again:
 
 This will generate two files `digitalocean` and `digitalocean.pub`.
 
-Repeat this process for the second key but use `digitalocean_deployer` for the key file name.
+Repeat this process for the pipeline key, but use `digitalocean_deployer` for the key file name.
 
 ### DigitalOcean
 
@@ -54,35 +58,98 @@ Once it is created the IP address should be displayed near the droplet name. In 
 ssh -i ~/.ssh/digitalocean root@<ip-address>
 ```
 
-Enter your password if you used one when creating the key.
+### Create the Sudo User
 
+Log in as `root` and add the user.
 
+```sh
+adduser <username>
+```
 
+You will be prompted to create and verify a password for the user.
 
+```
+New password:
+Retype new password:
+```
+
+Next, you will be asked to fill in some information about the user. You may leave these blank.
+
+```
+Enter the new values, or press ENTER for default
+    Full Name []:
+    Room Number []:
+    Work Phone []:
+    Home Phone []:
+    Other [];
+Is the information correct? [Y/n]
+```
+
+Now add the user to the `sudo` group.
+
+```sh
+usermod -aG sudo <username>
+```
+
+Switch to the new user and test a `sudo` command.
+
+```sh
+su - <username>
+sudo ls -la /root
+```
+
+### Create The Pipeline User
+
+The pipeline user will deploy and run the code. 
+
+Log in as the `sudo` user and create the user with a home directory.
+
+```sh
+sudo useradd -m <username>
+```
+
+Then set the password.
+
+```sh
+sudo passwd <username>
+```
+
+You will be prompted to create and verify a password for the user.
+
+```
+New password:
+Retype new password:
+```
+
+Now try switching to the pipeline user.
+
+```sh
+su - <username>
+```
 
 
 ### Install Postgresql
 
-To install `postgresql` log in as root and enable the `postgresql` official package repository.
+To install `postgresql` log in as the `sudo` user and enable the `postgresql` official package repository.
 
 ```sh
-sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/pgdg.asc &>/dev/null
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+sudo wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/pgdg.asc &>/dev/null
 ```
 
 Update the packages.
 
 ```sh
-apt update
+sudo apt update
 ```
 
 Install the `postgresql` package along with a `postgresql-client` package which adds some useful utilities and functionality.
 
 ```sh
-apt install postgresql postgresql-client -y
+sudo apt install postgresql postgresql-client -y
 ```
 
-Ensure the service is running (you should see a `active` status)
+Ensure the service is running and check the status (you should see a `active` status).
 
 ```sh
 systemctl start postgresql.service
@@ -99,88 +166,67 @@ sudo -u postgres psql
 
 You successfully installed `postgresql`. Type `\q` to exit the `postgresql` console.
 
-### Create The Application User
 
-The `app` user will be the user account that will deploy and run the code. This user will also match a `postgres` role the application will use to communicate with the database. 
-
-SSH into the server as `root` and create the user with a home directory.
-
-```sh
-useradd -m app
-```
-
-Set the password of `app`.
-
-```sh
-passwd app
-```
-
-Input the password as prompted.
-
-Try switching to the `app` user.
-
-```sh
-sudo -i -u app
-```
 
 ### Configure Postgresql for the Application
 
-SSH into the server as `root` and create a `role` for the user account `app`.
+Log in as the `sudo` user and create a `postgresql role` for the pipeline user.
 
 ```sh
 sudo -u postgres createuser --interactive
 ```
 
-Enter the `role` name `app`, and enter `n` for all prompts. 
+Make the `role` name the same as the pipeline user, and enter `n` for all prompts. 
 
 _Note that `postgresql` by default will allow user accounts to log in to a `role` if the names match. So the `name` of the `role` should match the `name` of the `linux` user account that will use it. It is possible to login as another `role` using the command `sudo -u <role-name> psql`, but for simplicity they will remain the same._
 
-Create the application database. 
+Create the application database and make the name the same as the `role` and pipeline user. 
 
 ```sh
-sudo -u postgres createdb app
+sudo -u postgres createdb <database-name>
 ```
 
 _Just like the linking of user accounts and roles, by default, the `psql` command will log in a user and connect to the database with the same name as the role. This can be overriden with `psql -d DATABASE_NAME`. For simplicity, make the database name the same as the `role` name._
 
-Enter the console with the `postgres` role.
+Enter the console as the `postgres` role.
 
 ```sh
 sudo -u postgres psql
 ```
 
-Connect to the `app` database, grant the `app` role privileges, and set the password.
+Connect to the database, grant the pipeline role privileges, and set the password.
 
 ```sql
-\c app
+\c <database-name>
 
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO <pipeline-role>;
 
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO <pipeline-role>;
 
-GRANT CREATE ON SCHEMA public TO app;
+GRANT CREATE ON SCHEMA public TO <pipeline-role>;
 
-ALTER ROLE app WITH PASSWORD 'password';
+ALTER ROLE <pipeline-role> WITH PASSWORD 'password';
 ```
 
-These privileges allow the `app` role to create, drop, and alter tables, select, insert, update, and delete rows, and create and use sequences. This limitation adds some security to the configuration as `app` does not have `superuser` privileges.
+TODO!!!
+These privileges allow the pipeline role to create, drop, and alter tables, select, insert, update, and delete rows, and create and use sequences. This limitation adds some security to the configuration as the pipeline `role` does not have `superuser` privileges.
 
 ### Verify the Application Role Privileges
 
-SSH into the server as `root` and log in to `postgresql` as the `app` user. 
+Log in as the `sudo` user and enter the `postgresql` console as the pipeline user. 
 
 ```sh 
-sudo -u app psql
+sudo -u <pipeline-username> psql
 ```
 
-Remember, by default, `postgresql` will look for a `role` that matches the user account. Since `root` is executing `psql` on behalf of the `app` user, `postgresql` will look for the `app` role. Since they match, it connects successfully.
+Remember, by default, `postgresql` will look for a `role` that matches the user account. Since the `sudo` user is executing `psql` on behalf of the pipeline user, `postgresql` will look for a role identical to the pipeline username. Since they match, it connects successfully.
 
-Also note, by default `postgresql` will attempt to connect to a database that matches the `role` name if no database is specified. In this case, `postgresql` will connect to the `app` database.
+Also note, by default `postgresql` will attempt to connect to a database that matches the `role` name if no database is specified. For example, if the `role` name is `app`, it will look for the database `app`.
 
 To override this, simply specify the database name.
 
 ```sh
-sudo -u app psql -d <database-name>
+sudo -u <username> psql -d <database-name>
 ```
 
 Create a table, insert some data, select the data, and then drop the table.
@@ -203,7 +249,7 @@ Everything should succeed.
 Now connect to the `postgres` database.
 
 ```sh
-sudo -u app psql -d postgres
+sudo -u <pipeline-username> psql -d postgres
 ```
 
 Or if you are still in the `postgresql` console use: `\c postgres`
@@ -215,10 +261,10 @@ Try running the commands again. You should get `ERROR: permission denied for sch
 
 The database migration utility will be [golang-migrate](https://github.com/golang-migrate/migrate/tree/master).
 
-On the server install the repository.
+Log in as the `sudo` user and install the repository.
 
 ```sh
-curl -s https://packagecloud.io/install/repositories/golang-migrate/migrate/script.deb.sh | sudo bash
+sudo curl -s https://packagecloud.io/install/repositories/golang-migrate/migrate/script.deb.sh | sudo bash
 ```
 
 Then install the package.
@@ -245,7 +291,7 @@ The commonly used commands are `up` on `down`.
 
 #### Example Up Migration
 
-`migrate` will look for a directory named `migrations` in the directory the command was executed from. 
+`migrate` will look for a directory named `migrations` located in the directory the command was executed from. 
 
 Then apply all the up migrations to the database `table_name`.
 
@@ -255,10 +301,10 @@ migrate -path migrations -database postgres://user:password@localhost:5432/table
 
 ### Systemd
 
-In a SSH session logged in as root, configure a systemd unit file to run the application as a system service. Use your favorite text editor (I use nano) and create a new systemd file. 
+Log in as the `sudo` user and configure a systemd unit file to run the application as a system service. Use your favorite text editor (I use nano) and create a new systemd file. 
 
 ```sh
-nano /etc/systemd/system/<service-name>.service
+sudo nano /etc/systemd/system/<service-name>.service
 ``` 
 
 Paste the following content.
@@ -266,19 +312,17 @@ Paste the following content.
 ```
 [Unit]
 Description=Your service description
-Requires=postgresql.service
-After=postgresql.service
 
 [Service]
 Type=simple
 Restart=always
 RestartSec=3
-ExecStart=/home/app/app
+ExecStart=<PATH-TO-BINARY>
 RemainAfterExit=yes
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier=MY-APP
-EnvironmentFile=/home/app/.env
+SyslogIdentifier=<APP-IDENTIFIER>
+EnvironmentFile=<PATH-TO-ENV>
 
 [Install]
 WantedBy=multi-user.target
@@ -286,32 +330,34 @@ WantedBy=multi-user.target
 
 Besure to change `ExecStart`, `EnvironmentFile`, and `SyslogIdentifier` with your own system configurations.
 
-All environment variables required by the service will be set in the file used by `EnvironmentFile`. This file will be generated by a Github Action.
+All environment variables required by the service will be set in the file used by `EnvironmentFile`. This file will be generated by the pipeline via Github Actions.
 
 Now you can enable the service to start at boot time.
 
 ```shell
-systemctl enable <service-name>
+sudo systemctl enable <service-name>
 ```
 
 
-### Give Systemctl Restart Privilege to App User
+### Give Systemctl Restart Privilege to the Pipeline User
 
-`app` will be used by Github Actions to SSH into the droplet and restart the service after copying the new binary. This is a very specific privilege `app` requires. A perfect reason to make use of the `sudoers` file. 
+The pipeline user will be used by Github Actions to SSH into the droplet and restart the service after copying the new binary to the server. 
 
-As `root` open the `/etc/sudoers` file.
+This is a very specific privilege required by the pipeline user. A perfect reason to make use of the `sudoers` file. 
+
+Log in as the `sudo` user and open the `/etc/sudoers` file.
 
 ```sh
-nano /etc/sudoers
+sudo nano /etc/sudoers
 ```
 
 Add the line in the `User privilege specification` section below the `root` definition:
 
 ```
-app    ALL = NOPASSWD: /usr/bin/systemctl restart <service-name>
+<pipeline-username>    ALL = NOPASSWD: /usr/bin/systemctl restart <service-name>
 ```
 
-This will allow `app` to run `sudo systemctl restart <service-name>` without needing to provide a password.
+This will allow the pipeline user to run `sudo systemctl restart <service-name>` without needing to provide a password.
 
 ### Adding Deployer SSH Key
 
@@ -321,31 +367,29 @@ On the local machine that generated the key `digitalocean_deployer`, print the p
 cat ~/.ssh/digitalocean_deployer.pub
 ```
 
-SSH into the droplet as `root` and create the `/home/app/.ssh` directory if it does not already exist.
+Log in to the droplet as the `sudo` user and create the `.ssh` directory in the home directory of the pipeline user.
 
 ```sh
-mkdir -p /home/app/.ssh
+sudo mkdir -p /home/<pipeline-username>/.ssh
 ```
 
 Add the SSH key to an `authorized_keys` file in this directory.
 
 ```sh
-nano /home/app/.ssh/authorized_keys
+sudo echo <digitalocean_deployer_key> >> /home/<pipeline-username>/.ssh/authorized_keys
 ```
 
-Paste the key to the file and save.
-
-The `/home/app/.ssh` directory and `/home/app/.ssh/authorized_keys` file must have specific restricted permissions (`700` for `.ssh` and `600` for `authorized_keys`). If they don't, you won't be able to log in.
+The `/home/<pipeline-username>/.ssh` directory and `/home/<pipeline-username>/.ssh/authorized_keys` file must have specific restricted permissions (`700` for `.ssh` and `600` for `authorized_keys`). If they don't, you won't be able to log in.
 
 ```sh
-chmod -R go= /home/app/.ssh
-chown -R app:app /home/app/.ssh
+chmod -R go= /home/<pipeline-username>/.ssh
+chown -R <pipeline-username>:<pipeline-username> /home/<pipeline-username>/.ssh
 ```
 
 Now it is possible to SSH into the droplet logging in as `app`.
 
 ```sh
-ssh -i ~/.ssh/digitalocean_deployer app@<ip-address>
+ssh -i ~/.ssh/digitalocean_deployer <pipeline-username>@<ip-address>
 ```
 
 
