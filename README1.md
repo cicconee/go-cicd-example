@@ -364,7 +364,7 @@ The following secrets are needed to deploy this application.
 
 | Secret | Description |
 | ------ | ----------- |
-| HOST | The server IP address |
+| HOST | The server IP address  adf asdf asdf adf adsf adf asdf asdf asdf asdf asdf asdf asdf asdf asfd as fasdfasf asdf |
 | KEY | The SSH key |
 | PASSPHRASE | The password for the SSH key |
 | USERNAME | The user that will SSH into the server |

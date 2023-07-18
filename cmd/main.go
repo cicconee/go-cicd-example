@@ -31,6 +31,8 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("RemoteAddr: %s\n", r.RemoteAddr)
+
 		switch r.Method {
 		case "GET":
 			handler.Get(w, r)
