@@ -29,8 +29,6 @@ func main() {
 
 	count := 1
 
-	log.Println("Hello,", os.Getenv("MY_NAME"))
-
 	mux := http.NewServeMux()
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -113,9 +111,10 @@ func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Post(w http.ResponseWriter, r *http.Request) {
-	_, err := h.db.ExecContext(r.Context(), "INSERT INTO users(id, name) VALUES($1, $2)",
+	_, err := h.db.ExecContext(r.Context(), "INSERT INTO users(id, name, age) VALUES($1, $2, $3)",
 		10,
 		"YOUR NAME",
+		29,
 	)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
