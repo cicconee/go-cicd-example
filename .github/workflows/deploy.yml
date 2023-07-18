@@ -47,4 +47,4 @@ jobs:
           script: |
             migrate -path migrations -database postgres://app:password@localhost:5432/app up
             chmod 660 /home/app/.env
-            sudo systemctl restart go-cicd
+            sudo systemctl restart app
