@@ -17,7 +17,7 @@ jobs:
           go-version: '1.19'
 
       - name: Build
-        run: go build -o app cmd/main.go
+        run: go build -o app cmd/main.go # TODO: build cmd/prod/main.go
 
       - name: Test
         run: go test -v ./...
@@ -34,10 +34,10 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
-          source: "app,.env"
-          target: /home/deployer/go-cicd
+          source: "app,.env,migrations/*"
+          target: /home/app
 
-      - name: Restart systemd service
+      - name: Start the service
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.HOST }}
@@ -45,5 +45,6 @@ jobs:
           key: ${{ secrets.KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
           script: |
-            chmod 660 /home/deployer/go-cicd/.env
+            migrate -path migrations -database postgres://app:password@localhost:5432/app up
+            chmod 660 /home/app/.env
             sudo systemctl restart go-cicd
