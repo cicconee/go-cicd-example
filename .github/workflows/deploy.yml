@@ -45,6 +45,6 @@ jobs:
           key: ${{ secrets.KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
           script: |
-            migrate -path migrations -database postgres://app:password@localhost:5432/app up
+            migrate -path migrations -database postgres://app:password@localhost:5432/app up 3
             chmod 660 /home/app/.env
             sudo systemctl restart app
