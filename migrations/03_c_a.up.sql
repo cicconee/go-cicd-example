@@ -3,5 +3,5 @@ create table good(
 );
 
 create table bad(
-    id 
+    id integer
 );
